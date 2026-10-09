@@ -1,0 +1,22 @@
+// Node.js 24+. Measures the PDF engine in an isolated process, not browser memory.
+import { readFile, writeFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+const [input = 'tmp/pdfs/scan-100.pdf', enginePath = 'src/pdf-engine.ts', prefix = 'tmp/pdfs/benchmark-after'] = process.argv.slice(2);
+const { inspectPdf, exportDocuments } = await import(pathToFileURL(resolve(enginePath)).href);
+const bytes = new Uint8Array(await readFile(input));
+const start = performance.now();
+const count = await inspectPdf(bytes);
+const inspectMs = performance.now() - start;
+const pages = Array.from({ length: count }, (_, index) => ({ id: `p-${index}`, sourceId: 'scan', pageIndex: count - index - 1, rotation: index === 0 ? 90 : 0 }));
+const exportStart = performance.now();
+const output = await exportDocuments(new Map([['scan', bytes]]), [pages], ['all.pdf'], false);
+const exportMs = performance.now() - exportStart;
+await writeFile(`${prefix}.pdf`, output);
+const zipStart = performance.now();
+const zip = await exportDocuments(new Map([['scan', bytes]]), [pages.slice(0, 50), pages.slice(50)], ['part-01.pdf', 'part-02.pdf'], true);
+const zipMs = performance.now() - zipStart;
+await writeFile(`${prefix}.zip`, zip);
+const report = { pages: count, inputMiB: +(bytes.byteLength / 2 ** 20).toFixed(2), inspectMs: Math.round(inspectMs), exportMs: Math.round(exportMs), splitZipMs: Math.round(zipMs), outputMiB: +(output.byteLength / 2 ** 20).toFixed(2), peakRssMiB: +(process.resourceUsage().maxRSS / 1024).toFixed(1), scope: 'Node PDF engine; excludes browser UI, PDF.js and transfer copies' };
+await writeFile(`${prefix}.json`, JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report));

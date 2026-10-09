@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+.venv/
+dist/
+*.tsbuildinfo
+tmp/
+.DS_Store
+public/pdf-assets/
+*.log
+.env
+.env.*
+!.env.example
