@@ -8,7 +8,17 @@ const reply = (response: Response, transfer: Transferable[] = []) => self.postMe
 self.onmessage = async ({ data }: MessageEvent<Request>) => {
   const { id, kind } = data;
   try {
-    if (kind === 'import') {
+    if(kind==='searchable') {
+      const original=await exportDocuments(sources,[data.pages],['searchable.pdf'],false);
+      const {addSearchableText}=await import('./searchable-pdf');
+      let font=new Uint8Array();
+      if(Object.values(data.layers).some(lines=>lines.some(line=>line.text.trim()))) {
+        const response=await fetch(data.fontUrl);if(!response.ok)throw new Error('无法加载本地中文字体，请重试。');
+        font=new Uint8Array(await response.arrayBuffer());
+      }
+      const bytes=await addSearchableText(original,data.pages.map(p=>data.layers[p.id]??[]),font,(done,total)=>reply({type:'progress',id,done,total}));
+      const result=transferableBuffer(bytes);reply({type:'result',id,kind,result},[result]);
+    } else if (kind === 'import') {
       const bytes = new Uint8Array(data.bytes);
       const pageCount = await inspectPdf(bytes);
       sources.set(data.sourceId, bytes);

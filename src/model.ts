@@ -42,9 +42,12 @@ export function hasUnexportedChanges(history: History, generatedKey: string | nu
 export type HistoryAction =
   | { type: 'commit'; update: (snapshot: Snapshot) => Snapshot }
   | { type: 'undo' }
-  | { type: 'redo' };
+  | { type: 'redo' }
+  | { type: 'replace'; snapshot:Snapshot };
+
 
 export function historyReducer(history: History, action: HistoryAction): History {
+  if(action.type==='replace')return {...emptyHistory,present:action.snapshot,revision:history.revision+1};
   if (action.type === 'undo') {
     if (!history.past.length) return history;
     return {

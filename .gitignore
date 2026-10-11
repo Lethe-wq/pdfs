@@ -6,6 +6,7 @@ dist/
 tmp/
 .DS_Store
 public/pdf-assets/
+public/ocr-assets/
 *.log
 .env
 .env.*

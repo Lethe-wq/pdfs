@@ -1,6 +1,8 @@
+import type { TextLine } from './text-layout';
 import type { PageItem } from './model';
 
 export interface Operations {
+  searchable: {input:{pages:PageItem[];layers:Record<string,TextLine[]>;fontUrl:string};output:ArrayBuffer};
   import: { input: { sourceId: string; bytes: ArrayBuffer }; output: { pageCount: number; bytes: ArrayBuffer } };
   restore: { input: { sourceId: string; bytes: ArrayBuffer }; output: null };
   release: { input: { sourceIds: string[] }; output: null };

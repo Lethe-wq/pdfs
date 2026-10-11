@@ -39,5 +39,5 @@ export function useWorkspace(busy: string) {
     releasePreviews(retained);
     pdfClient.releaseUnused(retained);
   }, [history, busy]);
-  return { history, dispatch, sources, pages, dirty, commit, move, moveSource, removeSource, markGenerated, sourcesById, sourceCounts, totalSize };
+  return { history, dispatch, sources, pages, dirty, commit, move, moveSource, removeSource, markGenerated, generatedKey, setGeneratedKey, sourcesById, sourceCounts, totalSize };
 }

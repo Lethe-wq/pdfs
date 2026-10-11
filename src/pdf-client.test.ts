@@ -24,7 +24,9 @@ class FakeWorker implements WorkerPort {
       } else if (request.kind === 'release') {
         request.sourceIds.forEach(id => this.sources.delete(id));
         this.emit({ type: 'result', id: request.id, kind: 'release', result: null });
-      } else {
+      } else if(request.kind==='searchable') {
+        this.emit({type:'result',id:request.id,kind:'searchable',result:new TextEncoder().encode(JSON.stringify({pages:request.pages,layers:request.layers})).buffer});
+      } else if(request.kind==='export') {
         if (request.groups.flat().some(page => !this.sources.has(page.sourceId))) this.emit({ type: 'error', id: request.id, message: '来源文件缺失' });
         else this.emit({ type: 'result', id: request.id, kind: 'export', result: new TextEncoder().encode(JSON.stringify(request.groups)).buffer });
       }
@@ -165,5 +167,16 @@ describe('PDF task lifecycle', () => {
     const client = new PdfClient(factory); clients.push(client);
     await expect(client.export([pages], ['all.pdf'], false)).rejects.toThrow('无法启动');
     expect(factory).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('searchable worker requests',()=>{
+  it('recovers original blobs and replays stable text layers after a crash',async()=>{
+    const workers:FakeWorker[]=[];
+    const client=new PdfClient(()=>{const worker=new FakeWorker((request,w)=>{if(workers.length===1&&request.kind==='searchable'){w.crash();return true;}return false;});workers.push(worker);return worker;});
+    await client.import('a',new Blob(['PDF']));
+    const pages=[{id:'p',sourceId:'a',pageIndex:0,rotation:90}],layers={p:[{id:'l',text:'中文',x:20,y:100,width:50,height:10}]};
+    const output=await client.searchable(pages,layers,'http://localhost/font.ttf');
+    expect(JSON.parse(new TextDecoder().decode(output))).toEqual({pages,layers});expect(workers).toHaveLength(2);expect(workers[1].requests.map(r=>r.kind)).toEqual(['restore','searchable']);client.dispose();
   });
 });

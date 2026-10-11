@@ -1,3 +1,4 @@
+import type { TextLine } from './text-layout';
 import type { PageItem } from './model';
 import type { Operation, Operations, Request, Response } from './pdf-protocol';
 import { checkCancelled, TaskCancelledError, waitFor, WorkerFailure } from './task-errors';
@@ -142,6 +143,9 @@ export class PdfClient {
     return imported.result;
   }
 
+  sourceFiles(ids: Set<string>): Record<string,Blob> {
+    return Object.fromEntries([...ids].flatMap(id=>this.files.has(id)?[[id,this.files.get(id)!]]:[]));
+  }
   releaseUnused(ids: Set<string>) {
     const unused = [...this.files.keys()].filter(id => !ids.has(id));
     unused.forEach(id => { this.files.delete(id); this.loaded.delete(id); });
@@ -152,6 +156,7 @@ export class PdfClient {
     return this.run(() => this.request('export', { groups, filenames, zip }, options), options);
   }
 
+  searchable(pages:PageItem[],layers:Record<string,TextLine[]>,fontUrl:string,options:TaskOptions={}) {return this.run(()=>this.request('searchable',{pages,layers,fontUrl},options),options);}
   recover(options: TaskOptions = {}) { return this.run(async () => {}, options); }
   dispose() { this.reset(new TaskCancelledError()); this.files.clear(); }
 }
